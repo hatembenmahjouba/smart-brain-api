@@ -3,46 +3,48 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
+const morgan = require('morgan');
 const knex = require('knex');
-const { handleSignin } = require('./controllers/signin');
+const { signinAuthentication } = require('./controllers/signin');
 const { handleRegister } = require('./controllers/register');
-const { handleProfileGet } = require('./controllers/profile');
+const {
+  handleProfileGet,
+  handleProfileUpdate,
+} = require('./controllers/profile');
 const { handleImage, handleApiCall } = require('./controllers/image');
+const { requireAuth } = require('./controllers/authorization');
+const { signout } = require('./controllers/signout');
 
 dotenv.config();
 const db = knex({
   client: 'pg',
-  connection: {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB,
-  },
+  connection: process.env.POSTGRES_URI,
 });
-
 const app = express();
 app.use(bodyParser.json());
+app.use(morgan('combined'));
 app.use(cors());
-
 app.get('/', (req, res) => {
   res.send('it is working');
 });
-
-app.post('/signin', handleSignin(db, bcrypt));
-
+app.post('/signin', signinAuthentication(db, bcrypt));
 app.post('/register', (req, res) => {
   handleRegister(req, res, db, bcrypt);
 });
+app.delete('/signout', (req, res) => {
+  signout(req, res);
+});
 
-app.get('/profile/:id', (req, res) => {
+app.get('/profile/:id', requireAuth, (req, res) => {
   handleProfileGet(req, res, db);
 });
-
-app.put('/image', (req, res) => {
+app.post('/profile/:id', requireAuth, (req, res) => {
+  handleProfileUpdate(req, res, db);
+});
+app.put('/image', requireAuth, (req, res) => {
   handleImage(req, res, db);
 });
-app.post('/imageurl', (req, res) => {
+app.post('/imageurl', requireAuth, (req, res) => {
   handleApiCall(req, res);
 });
 

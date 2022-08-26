@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+
+  # Postgres
+  postgres:
+    container_name: postgres
+    build: ./postgres
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_URL: "${POSTGRES_URL}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_HOST: "${POSTGRES_HOST}"
+    ports:
+      - "${POSTGRES_PORTS}"
+  
+  # Redis
+  redis:
+    container_name: redis
+    image: redis:latest
+    environment:
+      REDIS_PASSWORD: "${REDIS_PASSWORD}" 
+    ports:
+      - "${REDIS_PORTS}"
+  
+  # Backend API
+  smart-brain-api:
+    container_name: backend
+    build: ./
+    volumes:
+      - ./:/usr/src/smart-brain-api
+    command: npm run dev
+    working_dir: /usr/src/smart-brain-api
+    ports:
+      - "${API_PORTS}"
+    environment:
+      POSTGRES_URI: "${POSTGRES_URI}"
+      REDIS_URI: "${REDIS_URI}"
+      CLARIFAI_KEY: "${CLARIFAI_KEY}"
+      JWT_SECRET: "${JWT_SECRET}"
+    links:
+      - postgres
+      - redis
